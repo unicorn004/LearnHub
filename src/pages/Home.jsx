@@ -1,49 +1,43 @@
-import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   UserCircle, 
   MessageCircle, 
   BookOpen, 
-  LayoutDashboard, 
-  LogIn, 
-  // Github, 
-  // Linkedin, 
-  // Twitter 
+  LayoutDashboard
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const EdTechPlatform = () => {
-  const [activeRoute, setActiveRoute] = useState(null);
+  const navigate = useNavigate();
 
   const routes = [
-    // { 
-    //   id: 'login', 
-    //   name: 'Login/Register', 
-    //   icon: <LogIn size={48} />,
-    //   description: 'Access your personalized learning journey'
-    // },
     { 
       id: 'profile', 
       name: 'Profile', 
       icon: <UserCircle size={48} />,
-      description: 'Manage your personal learning profile'
+      description: 'Manage your personal learning profile',
+      action: () => navigate('/profile') // Navigate to /profile
     },
     { 
       id: 'community', 
-      name: 'Community', 
+      name: 'Discussion Forum', 
       icon: <MessageCircle size={48} />,
-      description: 'Connect with learners worldwide'
+      description: 'Connect with learners worldwide',
+      action: () => navigate('/forum') // Navigate to /forum
     },
     { 
       id: 'resources', 
       name: 'Resource Sharing', 
       icon: <BookOpen size={48} />,
-      description: 'Discover and share study materials'
+      description: 'Discover and share study materials',
+      action: () => navigate('/resource-sharing') // Navigate to /resource-sharing
     },
     { 
       id: 'dashboard', 
-      name: 'Dashboard', 
+      name: 'Room', 
       icon: <LayoutDashboard size={48} />,
-      description: 'Track your learning progress'
+      description: 'Talk with your friends and excel',
+      action: () => navigate('/chat') // Navigate to /chat
     }
   ];
 
@@ -60,7 +54,7 @@ const EdTechPlatform = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="text-gray-700 hover:text-blue-600 transition-colors"
-                onClick={() => setActiveRoute(route.id)} // Handle route change
+                onClick={route.action}
               >
                 {route.icon}
               </motion.button>
@@ -98,7 +92,8 @@ const EdTechPlatform = () => {
               scale: 1.05,
               boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.1)"
             }}
-            className="bg-white p-6 rounded-lg shadow-md text-center"
+            className="bg-white p-6 rounded-lg shadow-md text-center cursor-pointer"
+            onClick={route.action}
           >
             <div className="text-blue-600 mb-4 flex justify-center">
               {route.icon}
@@ -120,18 +115,19 @@ const EdTechPlatform = () => {
             <h4 className="text-xl font-bold mb-4">Quick Links</h4>
             {routes.map(route => (
               <div key={route.id} className="mb-2">
-                <a href={`#${route.id}`} className="text-gray-300 hover:text-white">
+                <button 
+                  className="text-gray-300 hover:text-white"
+                  onClick={route.action}
+                >
                   {route.name}
-                </a>
+                </button>
               </div>
             ))}
           </div>
           <div>
             <h4 className="text-xl font-bold mb-4">Connect With Us</h4>
             <div className="flex space-x-4">
-              {/* <Github className="text-gray-300 hover:text-white cursor-pointer" />
-              <Linkedin className="text-gray-300 hover:text-white cursor-pointer" />
-              <Twitter className="text-gray-300 hover:text-white cursor-pointer" /> */}
+              {/* Add social media icons here */}
             </div>
           </div>
         </div>

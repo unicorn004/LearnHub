@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState} from 'react';
 import { ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Simulated initial questions data
 const initialQuestions = [
@@ -23,6 +24,11 @@ const initialQuestions = [
 const DiscussionForum = () => {
   const [questions, setQuestions] = useState(initialQuestions);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const navigate = useNavigate();
+
+  const handleHomeClick = () => {
+    navigate('/home');
+  };
 
   return (
     <div className="max-w-4xl mx-auto bg-gray-50 min-h-screen">
