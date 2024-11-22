@@ -175,7 +175,23 @@ const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
   const addNewAnswer = async () => {
     if (newAnswer.trim()) {
       try {
-        // Simulated API call
+        // API call to check for toxic words
+        const checkResponse = await fetch('http://localhost:5234/mask-toxic', {
+          method: 'POST',
+          body: JSON.stringify({ sentence: newAnswer }),
+          headers: {
+            'Content-type': 'application/json; charset=UTF-8',
+          },
+        });
+        
+        const checkResult = await checkResponse.json();
+  
+        if (!checkResult.success) {
+          alert("Your answer contains toxic words. Please revise it.");
+          return; // Prevent submission if toxic words are found
+        }
+  
+        // Proceed to add the answer if it passes the toxic word check
         const response = await fetch('https://jsonplaceholder.typicode.com/comments', {
           method: 'POST',
           body: JSON.stringify({
@@ -196,15 +212,16 @@ const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
           upvotes: 0,
           downvotes: 0
         };
-
+  
         const updatedAnswers = [...answers, newAnswerObj];
+        console.log(updatedAnswers);
         setAnswers(updatedAnswers);
         
         // Update the parent component's state
         onUpdateQuestions(prev => 
           prev.map(q => 
             q.id === question.id 
-              ? {...q, answers: updatedAnswers} 
+              ? { ...q, answers: updatedAnswers } 
               : q
           )
         );
@@ -215,6 +232,7 @@ const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
       }
     }
   };
+  
 
   return (
     <div className="space-y-6">
