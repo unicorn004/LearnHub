@@ -14,7 +14,7 @@ const AuthPage = () => {
   const [coursework, setCoursework] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-
+  
   const navigate = useNavigate(); // Initialize useNavigate hook
 
   const handleSubmit = async (e) => {
@@ -27,6 +27,8 @@ const AuthPage = () => {
         // Login API call
         const response = await apiRoutes.loginUser({ email, password });
         localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("userid" , response.data.user._id);
+        localStorage.setItem("username" , response.data.user.name);
         setMessage("Logged in successfully!");
         navigate("/home"); // Redirect to /home after successful login
       } else {

@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, Send } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { io } from "socket.io-client";
+import { Menu, Send } from "lucide-react";
+import axios from "axios";
+// import { USER_ID, USER_NAME } from "../constant";
+import { useNavigate } from "react-router-dom";
 
-// Main App Component
 const ChatApp = () => {
   const [selectedRoom, setSelectedRoom] = useState(null);
 
@@ -13,27 +16,41 @@ const ChatApp = () => {
   );
 };
 
-// Left Sidebar Component
 const LeftSidebar = ({ onRoomSelect }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const rooms = ['Room 1', 'Room 2', 'Room 3', 'Room 4', 'Room 5'];
+  const [rooms, setRooms] = useState([]);
+  const currentUserId = localStorage.getItem("userid");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/chat/getAllRooms", { userId: currentUserId });
+        console.log(response);
+        setRooms(response.data.chats);
+      } catch (err) {
+        console.error("Error fetching rooms", err);
+      }
+    };
+
+    if (!currentUserId) navigate("/login");
+    else fetchRooms();
+  }, [currentUserId, navigate]);
 
   const handleRoomSelect = (room) => {
     onRoomSelect(room);
-    setIsMenuOpen(false);
   };
 
   return (
     <div className="w-1/4 bg-gray-100 border-r p-4">
-      {/* Room List */}
+      <h2 className="text-xl font-bold mb-4">Chat Rooms</h2>
       <div className="space-y-2">
         {rooms.map((room) => (
-          <div 
-            key={room} 
-            onClick={() => handleRoomSelect(room)}
+          <div
+            key={room.roomName}
+            onClick={() => handleRoomSelect(room.roomName)}
             className="p-3 bg-white rounded shadow hover:bg-gray-200 cursor-pointer transition-colors"
           >
-            {room}
+            {room.roomName}
           </div>
         ))}
       </div>
@@ -41,52 +58,57 @@ const LeftSidebar = ({ onRoomSelect }) => {
   );
 };
 
-// Right Chat Area Component
 const RightChatArea = ({ selectedRoom }) => {
-  const [chatData, setChatData] = useState(null);
-  const [inputMessage, setInputMessage] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [socket, setSocket] = useState(null);
+  const [prevMessages, setPrevMessages] = useState([]);
+  const [newMessages, setNewMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState("");
+  const navigate = useNavigate();
+  const userId = localStorage.getItem("userid");
+  const userName = localStorage.getItem("username");
 
-  // Fetch data when a room is selected
   useEffect(() => {
-    const fetchChatData = async () => {
+    if (!userId) navigate("/login");
+
+    const fetchPreviousMessages = async () => {
       if (selectedRoom) {
         try {
-          const response = await fetch('https://jsonplaceholder.typicode.com/todos/1');
-          const data = await response.json();
-          console.log(data);
-          // Create a message object from the API data
-          const newMessage = {
-            id: data.id,
-            userId: data.userId,
-            text: data.title,
-            completed: data.completed
-          };
-          
-          // Update messages with the new message
-          setMessages([newMessage]);
-          setChatData(data);
-        } catch (error) {
-          console.error('Error fetching chat data:', error);
+          const response = await axios.get(`http://localhost:5000/api/chat/${selectedRoom}`);
+          setPrevMessages(response.data.messages);
+        } catch (err) {
+          console.error("Error fetching previous messages", err);
         }
       }
     };
 
-    fetchChatData();
-  }, [selectedRoom]);
+    fetchPreviousMessages();
 
-  // Handle message input
+    const newSocket = io("http://localhost:5000");
+    setSocket(newSocket);
+
+    const joinRoom = () => {
+      newSocket.emit("joinRoom", selectedRoom);
+      newSocket.on("serverSendsMsg", (message) => {
+        setNewMessages((prev) => [...prev, message]);
+      });
+    };
+
+    joinRoom();
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [selectedRoom, navigate, userId]);
+
   const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      const newMessage = {
-        id: messages.length + 1,
-        userId: 'You',
+    if (inputMessage.trim() && socket) {
+      const messageData = {
         text: inputMessage,
-        completed: false
+        userId,
+        name: userName,
       };
-      
-      setMessages([...messages, newMessage]);
-      setInputMessage('');
+      socket.emit("serverRcvsMsg", messageData);
+      setInputMessage("");
     }
   };
 
@@ -100,46 +122,49 @@ const RightChatArea = ({ selectedRoom }) => {
 
   return (
     <div className="flex-grow flex flex-col">
-      {/* Room Header */}
-      <div className="bg-green-500 text-white p-4 font-bold">
-        {selectedRoom}
-      </div>
+      <div className="bg-green-500 text-white p-4 font-bold">{selectedRoom}</div>
 
-      {/* Chat Area */}
       <div className="flex-grow p-4 overflow-y-auto bg-gray-100">
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
+        {prevMessages.map((message, index) => {
+          const user = message.user && message.user[0];
+          return (
+            <div
+              key={index}
+              className={`mb-3 p-3 rounded max-w-md ${
+                user?._id?.toString() === userId ? "bg-green-100 ml-auto" : "bg-white mr-auto"
+              }`}
+            >
+              <div className="font-semibold text-sm mb-1">
+                {user?.name}
+              </div>
+              <div className="text-gray-800">{message.text}</div>
+            </div>
+          );
+        })}
+
+        {newMessages.map((message, index) => (
+          <div
+            key={index}
             className={`mb-3 p-3 rounded max-w-md ${
-              message.userId === 'You' 
-                ? 'bg-green-100 ml-auto' 
-                : 'bg-white mr-auto'
+              message.userId === userId ? "bg-green-100 ml-auto" : "bg-white mr-auto"
             }`}
           >
-            <div className="font-semibold text-sm mb-1">
-              {message.userId}
-            </div>
-            <div className="text-gray-800">
-              {message.text}
-            </div>
+            <div className="font-semibold text-sm mb-1">{message.name || "You"}</div>
+            <div className="text-gray-800">{message.text}</div>
           </div>
         ))}
       </div>
 
-      {/* Message Input Area */}
       <div className="flex p-4 bg-white border-t">
-        <input 
+        <input
           type="text"
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           placeholder="Type a message"
           className="flex-grow p-2 border rounded-l mr-2"
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
         />
-        <button 
-          onClick={handleSendMessage}
-          className="bg-green-500 text-white p-2 rounded-r"
-        >
+        <button onClick={handleSendMessage} className="bg-green-500 text-white p-2 rounded-r">
           <Send size={20} />
         </button>
       </div>
