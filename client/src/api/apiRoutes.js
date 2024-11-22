@@ -5,9 +5,9 @@ const API_BASE_URL = "http://localhost:5000/api"; // Replace with your actual ba
 
 // Set up the token for authentication
 const getAuthHeaders = () => {
-  const token = localStorage.getItem("authToken");
-  return { Authorization: `Bearer ${token}` };
-};
+    const token = localStorage.getItem("authToken");
+    return { "x-auth-token": token };
+  };  
 
 // API routes
 const apiRoutes = {
@@ -18,6 +18,19 @@ const apiRoutes = {
 
   loginUser: async (credentials) => {
     return axios.post(`${API_BASE_URL}/auth/login`, credentials);
+  },
+
+  // Profile APIs
+  getProfile: async () => {
+    return axios.get(`${API_BASE_URL}/profile`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  updateProfile: async (profileData) => {
+    return axios.put(`${API_BASE_URL}/profile`, profileData, {
+      headers: getAuthHeaders(),
+    });
   },
 
   // Group APIs

@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
 const groupRoutes = require("./routes/group");
 const resourceRoutes = require("./routes/resource");
+const profileRoutes = require("./routes/profileRoutes");
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/resources", resourceRoutes);
+app.use("/api/profile", profileRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;
