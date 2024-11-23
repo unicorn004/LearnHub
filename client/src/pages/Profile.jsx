@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiRoutes from "../api/apiRoutes";
 
@@ -12,6 +12,7 @@ const ProfilePage = () => {
     const fetchProfile = async () => {
       try {
         const response = await apiRoutes.getProfile();
+        console.log("Profile data fetched:", response.data);  // Log the data for debugging
         setProfile(response.data);
       } catch (err) {
         console.error("Error fetching profile data:", err);
@@ -20,9 +21,9 @@ const ProfilePage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchProfile();
-  }, []);
+  }, []);  
 
   if (loading) {
     return <p>Loading profile...</p>;
