@@ -32,7 +32,8 @@ const registerUser = async (req, res) => {
 
     // Create JWT token
     const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    console.log('JWT_SECRET in Auth:', process.env.JWT_SECRET);
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
 
     // Return token and user data
     res.json({ token, user });
@@ -53,7 +54,8 @@ const loginUser = async (req, res) => {
     if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
     const payload = { user: { id: user.id } };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    console.log('JWT_SECRET in Auth:', process.env.JWT_SECRET);
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
 
     res.json({ token,user });
   } catch (err) {

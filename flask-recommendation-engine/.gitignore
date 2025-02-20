@@ -1,0 +1,19 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environments
+.venv/
+env/
+.env/
+
+# Ignore type checking and other unnecessary files
+*.py.typed
+
+# Ignore any IDE specific files (if you use VS Code, for example)
+.vscode/
+
+# Ignore other common temporary files
+*.log

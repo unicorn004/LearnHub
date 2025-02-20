@@ -1,0 +1,7 @@
+Flask==3.1.0
+transformers==4.48.3
+torch==2.6.0
+sentence-transformers==3.4.1
+numpy==2.2.3
+tqdm==4.67.1
+detoxify==0.5.2

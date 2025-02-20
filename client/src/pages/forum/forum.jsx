@@ -1,34 +1,38 @@
-import { useState} from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { ThumbsUp, ThumbsDown, Send } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
-// Simulated initial questions data
-const initialQuestions = [
-  {
-    id: 1,
-    question: "What is React?",
-    askedBy: "User1",
-    answers: [
-      {
-        id: 1,
-        answer: "React is a JavaScript library for building user interfaces.",
-        answeredBy: "User2",
-        upvotes: 10,
-        downvotes: 2
-      }
-    ]
-  }
-];
 
 // Main Application Component
 const DiscussionForum = () => {
-  const [questions, setQuestions] = useState(initialQuestions);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const navigate = useNavigate();
 
-  const handleHomeClick = () => {
-    navigate('/home');
-  };
+  // Fetch posts from backend
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch('http://localhost:5000/api/forum/posts', {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+        const data = await response.json();
+        setQuestions(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto bg-gray-50 min-h-screen">
@@ -44,6 +48,8 @@ const DiscussionForum = () => {
             questions={questions} 
             onSelectQuestion={setSelectedQuestion} 
             onUpdateQuestions={setQuestions}
+            loading={loading}
+            error={error}
           />
         )}
       </div>
@@ -52,35 +58,69 @@ const DiscussionForum = () => {
 };
 
 // Questions Component
-const QuestionsComponent = ({ questions, onSelectQuestion, onUpdateQuestions }) => {
+const QuestionsComponent = ({ questions, onSelectQuestion, onUpdateQuestions, loading, error }) => {
+  QuestionsComponent.propTypes = {
+    questions: PropTypes.array.isRequired,
+    onSelectQuestion: PropTypes.func.isRequired,
+    onUpdateQuestions: PropTypes.func.isRequired,
+    loading: PropTypes.bool.isRequired,
+    error: PropTypes.string
+  };
+
   const [newQuestion, setNewQuestion] = useState('');
 
   const handleAddQuestion = async () => {
     if (newQuestion.trim()) {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert("You must be logged in to ask a question.");
+        return;
+      }
+
       try {
-        // Simulated API call
-        const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+        // Check for toxic content
+        const checkResponse = await fetch('http://localhost:5000/api/forum/check-toxic', {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
+          body: JSON.stringify({ text: newQuestion })
+        });
+
+
+        if (!checkResponse.ok) {
+          throw new Error('Failed to check for toxic content');
+        }
+
+        const checkResult = await checkResponse.json();
+        if (!checkResult.success) {
+          alert("Your question contains toxic words. Please revise it.");
+          return;
+        }
+
+        // If content is clean, proceed to add question
+        const response = await fetch('http://localhost:5000/api/forum/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
+          },
           body: JSON.stringify({
             title: newQuestion,
-            userId: 1
-          }),
-          headers: {
-            'Content-type': 'application/json; charset=UTF-8',
-          },
+            content: newQuestion
+          })
         });
-        
-        const newQuestionData = await response.json();
-        
-        const questionToAdd = {
-          id: newQuestionData.id,
-          question: newQuestion,
-          askedBy: 'Current User',
-          answers: []
-        };
 
-        onUpdateQuestions(prev => [...prev, questionToAdd]);
-        setNewQuestion('');
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error details:', errorData);
+          throw new Error('Failed to add question');
+        }
+
+        const newQuestionData = await response.json();
+        onUpdateQuestions(prev => [...prev, newQuestionData]);
+        setNewQuestion("");
       } catch (error) {
         console.error('Error adding question:', error);
       }
@@ -110,19 +150,27 @@ const QuestionsComponent = ({ questions, onSelectQuestion, onUpdateQuestions }) 
 
       {/* Questions List */}
       <div className="space-y-4">
-        {questions.map((q) => (
-          <div 
-            key={q.id} 
-            className="bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => onSelectQuestion(q)}
-          >
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">{q.question}</h2>
-            <p className="text-gray-600 text-sm">Asked by: {q.askedBy}</p>
-            <div className="mt-2 text-sm text-gray-500">
-              Answers: {q.answers.length}
+        {loading ? (
+          <div className="text-center py-4">Loading discussions...</div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-4">Error: {error}</div>
+        ) : questions.length > 0 ? (
+          questions.map((q) => (
+            <div 
+              key={q._id} 
+              className="bg-white shadow-md rounded-lg p-4 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => onSelectQuestion(q)}
+            >
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">{q.title}</h2>
+              <p className="text-gray-600 text-sm">Asked by: {q.user?.name || 'Anonymous'}</p>
+              <div className="mt-2 text-sm text-gray-500">
+                Answers: {q.comments?.length || 0}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <div className="text-center py-4">No discussions found</div>
+        )}
       </div>
     </div>
   );
@@ -130,40 +178,41 @@ const QuestionsComponent = ({ questions, onSelectQuestion, onUpdateQuestions }) 
 
 // Answers Component
 const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
-  const [answers, setAnswers] = useState(question.answers);
+  AnswersComponent.propTypes = {
+    question: PropTypes.object.isRequired,
+    onBack: PropTypes.func.isRequired,
+    onUpdateQuestions: PropTypes.func.isRequired
+  };
+
+  const [answers, setAnswers] = useState(question.comments || []);
   const [newAnswer, setNewAnswer] = useState('');
 
   const handleVote = async (answerId, voteType) => {
     try {
-      // Simulated API call for voting
-      const response = await fetch(`https://jsonplaceholder.typicode.com/comments/${answerId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          voteType: voteType
-        }),
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:5000/api/forum/vote', {
+        method: 'POST',
         headers: {
-          'Content-type': 'application/json; charset=UTF-8',
+          'Content-Type': 'application/json',
+          'x-auth-token': token,
         },
+        body: JSON.stringify({
+          postId: question._id,
+          commentId: answerId,
+          voteType
+        })
       });
-      
-      const updatedAnswers = answers.map(ans => {
-        if (ans.id === answerId) {
-          return {
-            ...ans,
-            upvotes: voteType === 'up' ? ans.upvotes + 1 : ans.upvotes,
-            downvotes: voteType === 'down' ? ans.downvotes + 1 : ans.downvotes
-          };
-        }
-        return ans;
-      });
-      
-      setAnswers(updatedAnswers);
-      
-      // Update the parent component's state
+
+      if (!response.ok) {
+        throw new Error('Failed to vote');
+      }
+
+      const updatedPost = await response.json();
+      setAnswers(updatedPost.comments);
       onUpdateQuestions(prev => 
         prev.map(q => 
-          q.id === question.id 
-            ? {...q, answers: updatedAnswers} 
+          q._id === question._id 
+            ? {...q, comments: updatedPost.comments} 
             : q
         )
       );
@@ -174,65 +223,68 @@ const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
 
   const addNewAnswer = async () => {
     if (newAnswer.trim()) {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert("You must be logged in to post an answer.");
+        return;
+      }
+      
       try {
-        // API call to check for toxic words
-        const checkResponse = await fetch('http://localhost:5234/mask-toxic', {
+        // Check for toxic content
+        const checkResponse = await fetch('http://localhost:5000/api/forum/check-toxic', {
           method: 'POST',
-          body: JSON.stringify({ sentence: newAnswer }),
           headers: {
-            'Content-type': 'application/json; charset=UTF-8',
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
           },
+
+          body: JSON.stringify({ text: newAnswer })
         });
-        
+
+
+        if (!checkResponse.ok) {
+          throw new Error('Failed to check for toxic content');
+        }
+
         const checkResult = await checkResponse.json();
-  
         if (!checkResult.success) {
           alert("Your answer contains toxic words. Please revise it.");
-          return; // Prevent submission if toxic words are found
+          return;
         }
-  
-        // Proceed to add the answer if it passes the toxic word check
-        const response = await fetch('https://jsonplaceholder.typicode.com/comments', {
+
+        // Add the answer
+        const response = await fetch('http://localhost:5000/api/forum/comment', {
+
           method: 'POST',
-          body: JSON.stringify({
-            body: newAnswer,
-            name: 'Current User'
-          }),
           headers: {
-            'Content-type': 'application/json; charset=UTF-8',
+            'Content-Type': 'application/json',
+            'x-auth-token': token,
           },
+          body: JSON.stringify({
+            postId: question._id,
+            content: newAnswer
+          })
         });
-        
-        const newAnswerData = await response.json();
-        
-        const newAnswerObj = {
-          id: newAnswerData.id,
-          answer: newAnswer,
-          answeredBy: 'Current User',
-          upvotes: 0,
-          downvotes: 0
-        };
-  
-        const updatedAnswers = [...answers, newAnswerObj];
-        console.log(updatedAnswers);
-        setAnswers(updatedAnswers);
-        
-        // Update the parent component's state
+
+        if (!response.ok) {
+          throw new Error('Failed to add answer');
+        }
+
+        const updatedPost = await response.json();
+        setAnswers(updatedPost.comments);
         onUpdateQuestions(prev => 
           prev.map(q => 
-            q.id === question.id 
-              ? { ...q, answers: updatedAnswers } 
+            q._id === question._id 
+              ? {...q, comments: updatedPost.comments} 
               : q
           )
         );
-        
         setNewAnswer('');
       } catch (error) {
         console.error('Error adding answer:', error);
       }
     }
   };
-  
 
   return (
     <div className="space-y-6">
@@ -244,30 +296,30 @@ const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
       </button>
 
       <div className="bg-white shadow-md rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">{question.question}</h1>
-        <p className="text-gray-600">Asked by: {question.askedBy}</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">{question.title}</h1>
+        <p className="text-gray-600">Asked by: {question.user?.name || 'Anonymous'}</p>
       </div>
 
       <div className="space-y-4">
         {answers.map((ans) => (
           <div 
-            key={ans.id} 
+            key={ans._id} 
             className="bg-white shadow-md rounded-lg p-4"
           >
-            <p className="text-gray-800 mb-2">{ans.answer}</p>
+            <p className="text-gray-800 mb-2">{ans.content}</p>
             <div className="flex items-center justify-between">
               <p className="text-gray-600 text-sm">
-                Answered by: {ans.answeredBy}
+                Answered by: {ans.user?.name || 'Anonymous'}
               </p>
               <div className="flex items-center space-x-4">
                 <button 
-                  onClick={() => handleVote(ans.id, 'up')}
+                  onClick={() => handleVote(ans._id, 'upvote')}
                   className="flex items-center text-green-600 hover:text-green-700"
                 >
                   <ThumbsUp size={16} className="mr-1" /> {ans.upvotes}
                 </button>
                 <button 
-                  onClick={() => handleVote(ans.id, 'down')}
+                  onClick={() => handleVote(ans._id, 'downvote')}
                   className="flex items-center text-red-600 hover:text-red-700"
                 >
                   <ThumbsDown size={16} className="mr-1" /> {ans.downvotes}
@@ -288,7 +340,7 @@ const AnswersComponent = ({ question, onBack, onUpdateQuestions }) => {
         />
         <button 
           onClick={addNewAnswer}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+          className="bg-blue-500 text-white px=4 py-2 rounded-md hover:bg-blue-600 transition-colors"
         >
           Submit Answer
         </button>

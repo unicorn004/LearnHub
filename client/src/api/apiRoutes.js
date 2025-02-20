@@ -1,13 +1,13 @@
 import axios from "axios";
 
 // Base URL for the backend server
-const API_BASE_URL = "http://localhost:5000/api"; // Replace with your actual backend URL
+const API_BASE_URL = "http://localhost:5000/api";
 
 // Set up the token for authentication
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("authToken");
-    return { "x-auth-token": token };
-  };  
+export const getAuthHeader = () => {
+  const token = localStorage.getItem("authToken");
+  return { "x-auth-token": token };
+};
 
 // API routes
 const apiRoutes = {
@@ -23,26 +23,26 @@ const apiRoutes = {
   // Profile APIs
   getProfile: async () => {
     return axios.get(`${API_BASE_URL}/profile`, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 
   updateProfile: async (profileData) => {
     return axios.put(`${API_BASE_URL}/profile`, profileData, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 
   // Group APIs
   createGroup: async (groupData) => {
     return axios.post(`${API_BASE_URL}/groups/create`, groupData, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 
   joinGroup: async (groupId) => {
     return axios.post(`${API_BASE_URL}/groups/join`, { groupId }, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 
@@ -53,7 +53,7 @@ const apiRoutes = {
 
     return axios.post(`${API_BASE_URL}/resources/upload`, formData, {
       headers: {
-        ...getAuthHeaders(),
+        ...getAuthHeader(),
         "Content-Type": "multipart/form-data",
       },
     });
@@ -67,19 +67,19 @@ const apiRoutes = {
   // Forum APIs
   createForumPost: async (postData) => {
     return axios.post(`${API_BASE_URL}/forum/create`, postData, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 
   addComment: async (commentData) => {
     return axios.post(`${API_BASE_URL}/forum/comment`, commentData, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 
   voteComment: async (voteData) => {
     return axios.post(`${API_BASE_URL}/forum/vote`, voteData, {
-      headers: getAuthHeaders(),
+      headers: getAuthHeader(),
     });
   },
 };

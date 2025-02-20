@@ -3,12 +3,21 @@ import {
   UserCircle, 
   MessageCircle, 
   BookOpen, 
-  LayoutDashboard
+  LayoutDashboard,
+  LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const EdTechPlatform = () => {
   const navigate = useNavigate();
+
+  const handleSignOut = () => {
+    // Clear user data and redirect to login
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userid');
+    localStorage.removeItem('username');
+    navigate('/');
+  };
 
   const routes = [
     { 
@@ -16,28 +25,28 @@ const EdTechPlatform = () => {
       name: 'Profile', 
       icon: <UserCircle size={48} />,
       description: 'Manage your personal learning profile',
-      action: () => navigate('/profile') // Navigate to /profile
+      action: () => navigate('/profile')
     },
     { 
       id: 'community', 
       name: 'Discussion Forum', 
       icon: <MessageCircle size={48} />,
       description: 'Connect with learners worldwide',
-      action: () => navigate('/forum') // Navigate to /forum
+      action: () => navigate('/forum')
     },
     { 
       id: 'resources', 
       name: 'Resource Sharing', 
       icon: <BookOpen size={48} />,
       description: 'Discover and share study materials',
-      action: () => navigate('/resource-sharing') // Navigate to /resource-sharing
+      action: () => navigate('/resource-sharing')
     },
     { 
       id: 'dashboard', 
       name: 'Room', 
       icon: <LayoutDashboard size={48} />,
       description: 'Talk with your friends and excel',
-      action: () => navigate('/chat') // Navigate to /chat
+      action: () => navigate('/chat')
     }
   ];
 
@@ -59,6 +68,14 @@ const EdTechPlatform = () => {
                 {route.icon}
               </motion.button>
             ))}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="text-gray-700 hover:text-blue-600 transition-colors"
+              onClick={handleSignOut}
+            >
+              <LogOut size={48} />
+            </motion.button>
           </div>
         </div>
       </nav>
