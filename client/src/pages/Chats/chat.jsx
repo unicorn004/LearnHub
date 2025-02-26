@@ -46,7 +46,6 @@ const LeftSidebar = ({ onRoomSelect }) => {
   }, [currentUserId, navigate]);
 
   const handleRoomSelect = (room) => {
-    console.log("Selected Room:", room);
     onRoomSelect(room);
   };
 
@@ -126,7 +125,6 @@ const RightChatArea = ({ selectedRoom }) => {
     if (!userId) navigate("/login");
     if (!selectedRoom) return;
 
-    console.log("Updated selectedRoom:", selectedRoom);
     const newSocket = io("http://localhost:5000", {
       withCredentials: true,
       transports: ["polling", "websocket"]
@@ -141,7 +139,7 @@ const RightChatArea = ({ selectedRoom }) => {
       setMessages(messages);
     });
     newSocket.on("serverSendsMsg", (message) => {
-      console.log("Received message from server:", message);
+      
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 

@@ -47,6 +47,12 @@ const apiRoutes = {
   },
 
   // Resource APIs
+  getResources: async () => {
+    return axios.get(`${API_BASE_URL}/resources`, {
+      headers: getAuthHeader(),
+    });
+  },
+
   uploadResource: async (file) => {
     const formData = new FormData();
     formData.append("file", file);

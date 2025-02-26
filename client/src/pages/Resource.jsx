@@ -7,55 +7,56 @@ import {
   CheckCircle 
 } from 'lucide-react';
 
-// Mock initial resources (in a real app, this would come from backend)
-const initialResources = [
-  {
-    id: 1,
-    title: 'Machine Learning Basics',
-    type: 'PDF',
-    uploadedBy: 'John Doe',
-    uploadDate: '2024-02-15',
-    subject: 'Computer Science',
-    fileSize: '2.5 MB',
-    downloadCount: 34
-  },
-  {
-    id: 2,
-    title: 'Advanced Calculus Notes',
-    type: 'PDF',
-    uploadedBy: 'Jane Smith',
-    uploadDate: '2024-02-10',
-    subject: 'Mathematics',
-    fileSize: '1.8 MB',
-    downloadCount: 22
-  },
-  {
-    id: 3,
-    title: 'Data Structures Interview Prep',
-    type: 'PDF',
-    uploadedBy: 'Alice Johnson',
-    uploadDate: '2024-02-12',
-    subject: 'Computer Science',
-    fileSize: '3.2 MB',
-    downloadCount: 45
-  }
-];
-
 const ResourceSharingPage = () => {
-  const [resources, setResources] = useState(initialResources);
+  // State declarations
+  const [resources, setResources] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredResources, setFilteredResources] = useState(initialResources);
+  const [filteredResources, setFilteredResources] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadSubject, setUploadSubject] = useState('');
+  const [uploadDescription, setUploadDescription] = useState("");
+  // Fetch resources on component mount
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/resource", {
+          headers: {
+            "x-auth-token": localStorage.getItem("authToken"), // Updated to use x-auth-token
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.error("Unauthorized access. Please log in again.");
+            setResources([]); // Reset resources on unauthorized access
+            setFilteredResources([]); // Reset filtered resources
+            return;
+          }
+          throw new Error("Failed to fetch resources");
+        }
+
+        const data = await response.json();
+        setResources(data);
+        setFilteredResources(data); // Initialize filtered resources
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+        setResources([]); // Ensure it's an array
+        setFilteredResources([]); // Ensure it's an array
+      }
+    };
+
+    fetchResources();
+  }, []);
 
   // Search functionality
   useEffect(() => {
     const filtered = resources.filter(resource => 
-      resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resource.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resource.uploadedBy.toLowerCase().includes(searchTerm.toLowerCase())
+      (resource.title && resource.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (resource.subject && resource.subject.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (resource.uploadedBy && resource.uploadedBy.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+
     setFilteredResources(filtered);
   }, [searchTerm, resources]);
 
@@ -65,39 +66,59 @@ const ResourceSharingPage = () => {
     setUploadFile(file);
   };
 
-  // Submit upload
-  const submitUpload = (e) => {
+  // Submit upload to backend
+  const submitUpload = async (e) => {
     e.preventDefault();
     if (!uploadFile || !uploadTitle || !uploadSubject) {
       alert('Please fill all fields');
       return;
     }
 
-    const newResource = {
-      id: resources.length + 1,
-      title: uploadTitle,
-      type: uploadFile.type.split('/').pop().toUpperCase(),
-      uploadedBy: 'Current User', // In real app, get from auth
-      uploadDate: new Date().toISOString().split('T')[0],
-      subject: uploadSubject,
-      fileSize: `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB`,
-      downloadCount: 0
-    };
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append("name", uploadTitle);
+    formData.append("topic", uploadSubject);
+    formData.append("description", uploadDescription);
 
-    setResources([...resources, newResource]);
-    
+    try {
+      const response = await fetch("http://localhost:5000/api/resource/upload", {
+        method: "POST",
+        headers: {
+          "x-auth-token": localStorage.getItem("authToken"), // Updated to use x-auth-token
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const {resource} = await response.json();
+        setResources([...resources, resource]);
+        alert(`File uploaded successfully! View here: ${resource.fileUrl}`);
+      } else {
+        alert("Failed to upload resource");
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("An error occurred while uploading the file");
+    }
+
     // Reset form
     setUploadFile(null);
     setUploadTitle('');
     setUploadSubject('');
-    
-    // Close modal or reset upload state
   };
 
-  // Download handler (mock)
-  const handleDownload = (resource) => {
-    alert(`Downloading: ${resource.title}`);
-    // In real app, implement actual download logic
+  // Download handler
+  const handleDownload = async (resource) => {
+    
+    const response = await fetch(resource.fileUrl);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = resource.title || 'downloaded_file'; // Fallback name if title is undefined
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   return (
@@ -133,9 +154,10 @@ const ResourceSharingPage = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredResources.map((resource) => (
             <div 
-              key={resource.id} 
+              key={resource.id || resource.title} // Use a unique identifier
               className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition"
             >
+
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center">
                   <FileText className="text-blue-600 mr-3" />
@@ -161,7 +183,7 @@ const ResourceSharingPage = () => {
                 </button>
               </div>
             </div>
-          ))}
+          ))} 
         </div>
 
         {/* Upload Modal */}
@@ -179,29 +201,40 @@ const ResourceSharingPage = () => {
                 <X />
               </button>
             </div>
-            <form onSubmit={submitUpload} className="space-y-4">
-              <div>
-                <label className="block mb-2">Resource Title</label>
-                <input 
-                  type="text" 
-                  value={uploadTitle}
-                  onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="Enter resource title"
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-2">Subject</label>
-                <input 
-                  type="text" 
-                  value={uploadSubject}
-                  onChange={(e) => setUploadSubject(e.target.value)}
-                  placeholder="Enter subject"
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                />
-              </div>
+<form onSubmit={submitUpload} className="space-y-4">
+  <div>
+    <label className="block mb-2">Resource Title</label>
+    <input 
+      type="text" 
+      value={uploadTitle}
+      onChange={(e) => setUploadTitle(e.target.value)}
+      placeholder="Enter resource title"
+      className="w-full px-3 py-2 border rounded-lg"
+      required
+    />
+  </div>
+  <div>
+    <label className="block mb-2">Subject</label>
+    <input 
+      type="text" 
+      value={uploadSubject}
+      onChange={(e) => setUploadSubject(e.target.value)}
+      placeholder="Enter subject"
+      className="w-full px-3 py-2 border rounded-lg"
+      required
+    />
+  </div>
+  <div>
+    <label className="block mb-2">Description</label>
+    <textarea 
+      value={uploadDescription}
+      onChange={(e) => setUploadDescription(e.target.value)}
+      placeholder="Enter a description"
+      className="w-full px-3 py-2 border rounded-lg"
+      required
+    />
+  </div>
+
               <div>
                 <label className="block mb-2">Upload File</label>
                 <input 
