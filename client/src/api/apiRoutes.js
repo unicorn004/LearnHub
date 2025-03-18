@@ -88,6 +88,20 @@ const apiRoutes = {
       headers: getAuthHeader(),
     });
   },
+
+  askAI: async (question) => {
+    try {
+      console.log('Sending question to backend:', question);
+      const response = await axios.post(`${API_BASE_URL}/ai/ask-ai`, { question }, {
+        headers: getAuthHeader(),
+      });
+      console.log('Received AI response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error calling AI service:", error);
+      throw error;
+    }
+  },
 };
 
 export default apiRoutes;

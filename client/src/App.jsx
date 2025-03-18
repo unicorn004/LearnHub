@@ -6,6 +6,7 @@ import MultiStepForm from './pages/matchmaking/form';
 import ProfilePage from './pages/Profile';
 import EdTechPlatform from './pages/Home';
 import ResourceSharingPage from './pages/Resource';
+import AIChat from './components/AIChat';
 
 function App() {
   return (
@@ -17,8 +18,9 @@ function App() {
           <Route path="/chat" element={<ChatApp />} />
           <Route path="/forum" element={<DiscussionForum />} />
           <Route path="/match-making-form" element={<MultiStepForm />} />
-          <Route path="/profile" element={<ProfilePage />} /> {/* Correct route for Profile */}
-          <Route path="/resource-sharing" element={<ResourceSharingPage />} /> {/* Correct route for Resource Sharing */}
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/resource-sharing" element={<ResourceSharingPage />} />
+          <Route path="/ai-chat" element={<AIChat />} />
         </Routes>
       </div>
     </Router>
