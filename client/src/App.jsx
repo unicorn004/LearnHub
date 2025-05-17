@@ -7,7 +7,7 @@ import ProfilePage from './pages/Profile';
 import EdTechPlatform from './pages/Home';
 import ResourceSharingPage from './pages/Resource';
 import AIChat from './components/AIChat';
-
+import QuizComponent from './pages/Quiz';
 function App() {
   return (
     <Router>
@@ -21,6 +21,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/resource-sharing" element={<ResourceSharingPage />} />
           <Route path="/ai-chat" element={<AIChat />} />
+          <Route path="/quiz" element={<QuizComponent />} />
         </Routes>
       </div>
     </Router>
