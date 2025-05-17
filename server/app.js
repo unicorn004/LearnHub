@@ -14,7 +14,7 @@ const recommendationRoutes = require("./routes/recommendation");
 const forumRoutes = require("./routes/forum");
 const { router: chatRoutes, handleSocketConnections } = require("./routes/chat");
 const aiRoutes = require("./routes/geminiRoute");
-
+const quiz = require ("./routes/quiz.js")
 // Initialize the app
 const app = express();
 const server = http.createServer(app);
@@ -53,7 +53,7 @@ app.use("/api/recommendation", recommendationRoutes);
 app.use("/api/forum", forumRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai",aiRoutes);
-
+app.use("/api/quiz",quiz);
 // Start the server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
